@@ -27,4 +27,6 @@ EXTRA_ARGS=()
 # Run under Bun: the cyber extension's evidence/knowledge stores import
 # bun:sqlite, which Node cannot resolve. The pi bin ships a node shebang, so
 # invoke it through bun explicitly.
-exec bun "$PI" -e "$ROOT/src/boot.ts" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+# Default thinking off: reasoning budgets balloon the output-token request
+# (a free-tier credit reservation killer). Override with CYBER_THINKING=low|high.
+exec bun "$PI" -e "$ROOT/src/boot.ts" --thinking "${CYBER_THINKING:-off}" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
