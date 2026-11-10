@@ -42,9 +42,10 @@ export interface ResolvedRecord {
   binary_sha256?: string;
 }
 
-/** Human-readable matching rule printed by install.sh --dry-run and referenced in failures. */
+/** Human-readable matching rule printed by install.sh --dry-run and referenced in failures.
+ *  Host-aware: describes the asset pick for the *running* platform/arch. */
 export const ASSET_PATTERN =
-  'asset name matches (darwin|macos|osx) AND (arm64|aarch64); extension ∈ zip|tar.gz|tgz|tar.xz|tar.bz2|bare binary; excludes x86_64|x86|amd64|386|64bit|32bit, checksums/sbom/meta files, dmg|pkg|jar|sh|py';
+  `asset name matches host OS (${process.platform}) AND arch (${process.arch}); extension ∈ zip|tar.gz|tgz|tar.xz|tar.bz2|bare binary; excludes the other arch, 32-bit, checksums/sbom/meta, dmg|pkg|jar|sh|py`;
 
 const REPO_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*\/[A-Za-z0-9_.-]+$/;
 const SHA256_RE = /^[0-9a-f]{64}$/i;
@@ -54,6 +55,27 @@ const EXCLUDE_RE = /(x86_64|x86|amd64|i386|386|64bit|32bit|sbom|checksum|sha256|
 const OS_RE = /(darwin|macos|osx)/i;
 const ARM_RE = /(arm64|aarch64)/i;
 const ARCHIVE_RE = /\.(zip|tar\.gz|tgz|tar\.xz|txz|tar\.bz2|tbz2)$/i;
+
+// Host-aware selection: the darwin/arm64 matcher above is kept for its unit test;
+// resolveLatest() picks for the running host via these so the installer is portable.
+const HOST_OS_RE = process.platform === "darwin" ? /(darwin|macos|osx)/i : /linux/i;
+const HOST_ARCH_RE = process.arch === "arm64" ? /(arm64|aarch64)/i : /(x86_64|amd64|x64|64bit)/i;
+// Exclude the OTHER arch + 32-bit (host arch is selected positively, so its tokens are NOT excluded here).
+const HOST_WRONG_ARCH_RE = process.arch === "arm64" ? /(x86_64|amd64|i386|386|32bit)/i : /(arm64|aarch64|i386|386|32bit)/i;
+const HOST_META_RE = /(sbom|checksum|sha256|sha1|\.dmg|\.pkg|\.jar|\.py|\.sh|\.txt|\.json|\.md|\.sig|\.crt|\.release|\.yaml|\.yml)$/i;
+
+/** Pick the install asset matching the RUNNING host (OS + arch). Returns null when nothing
+ *  matches — the caller must surface that as an explicit per-tool failure, never a silent skip. */
+export function pickHostAsset(assets: ReleaseAsset[]): ReleaseAsset | null {
+  const candidates = assets
+    .filter((asset) => typeof asset.name === "string" && asset.name.length > 0 && typeof asset.url === "string")
+    .filter((asset) => HOST_OS_RE.test(asset.name))
+    .filter((asset) => HOST_ARCH_RE.test(asset.name))
+    .filter((asset) => !HOST_WRONG_ARCH_RE.test(asset.name))
+    .filter((asset) => !HOST_META_RE.test(asset.name))
+    .filter((asset) => ARCHIVE_RE.test(asset.name) || !/\.[a-z0-9]+$/i.test(asset.name)); // archive or bare binary
+  return candidates[0] ?? null;
+}
 
 /**
  * Pick the darwin/arm64 install asset from a release asset list. Returns null when nothing
@@ -149,9 +171,9 @@ async function parseReleaseResponse(repo: string, body: unknown): Promise<Resolu
     }
     return { name: asset.name, url: asset.browser_download_url };
   });
-  const picked = pickDarwinArm64Asset(assets);
+  const picked = pickHostAsset(assets);
   if (picked === null) {
-    throw new Error(`no darwin/arm64 asset on tag ${tag} (matcher: ${ASSET_PATTERN})`);
+    throw new Error(`no ${process.platform}/${process.arch} asset on tag ${tag} (matcher: ${ASSET_PATTERN})`);
   }
   return { tag, assetName: picked.name, assetUrl: picked.url };
 }

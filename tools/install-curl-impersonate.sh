@@ -14,23 +14,22 @@ TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pi-cyber-curl-impersonate.XXXXXX")"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 VERSION="v2.3.0"
+OS="$(uname -s)"
 ARCH="$(uname -m)"
-if [[ "$ARCH" == "arm64" ]]; then
-  ASSET="curl-impersonate-${VERSION}.arm64-macos.tar.gz"
-elif [[ "$ARCH" == "x86_64" ]]; then
-  ASSET="curl-impersonate-${VERSION}.x86_64-macos.tar.gz"
-else
-  echo "pi-cyber: unsupported architecture for curl-impersonate: $ARCH" >&2
-  exit 1
-fi
+# OS/arch -> upstream asset + pinned SHA-256. Linux uses the glibc (linux-gnu) build.
+case "${OS}/${ARCH}" in
+  Darwin/arm64)
+    ASSET="curl-impersonate-${VERSION}.arm64-macos.tar.gz"
+    EXPECTED_SHA256="2dfb4b5733e01ec88f9cc7363696c848d0a2b810584d4c0fac7719f82b985f8f" ;;
+  Linux/x86_64)
+    ASSET="curl-impersonate-${VERSION}.x86_64-linux-gnu.tar.gz"
+    EXPECTED_SHA256="5e77cb12217158f118ead21ab550791788e553fb140d03a49d74d08308ebdb06" ;;
+  *)
+    echo "pi-cyber: unsupported OS/arch for curl-impersonate: ${OS}/${ARCH}" >&2
+    exit 1 ;;
+esac
 
 SOURCE_URL="https://github.com/lexiforest/curl-impersonate/releases/download/${VERSION}/${ASSET}"
-if [[ "$ARCH" == "arm64" ]]; then
-  EXPECTED_SHA256="2dfb4b5733e01ec88f9cc7363696c848d0a2b810584d4c0fac7719f82b985f8f"
-else
-  echo "pi-cyber: pin the ${ASSET} SHA-256 before installing on x86_64 (see docs)" >&2
-  exit 1
-fi
 
 ARCHIVE="$TEMP_DIR/$ASSET"
 curl --fail --location --proto '=https' --tlsv1.2 "$SOURCE_URL" --output "$ARCHIVE"
