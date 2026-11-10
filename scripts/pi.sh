@@ -24,4 +24,7 @@ PI="$ROOT/node_modules/.bin/pi"
 EXTRA_ARGS=()
 [ "${AST:-0}" = "1" ] && EXTRA_ARGS+=(-e "$ROOT/src/ast-extension.ts")
 # No --theme argument: unverified flag on Pi 1.3.0; theme resources load via the package.json manifest.
-exec "$PI" -e "$ROOT/src/boot.ts" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+# Run under Bun: the cyber extension's evidence/knowledge stores import
+# bun:sqlite, which Node cannot resolve. The pi bin ships a node shebang, so
+# invoke it through bun explicitly.
+exec bun "$PI" -e "$ROOT/src/boot.ts" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}

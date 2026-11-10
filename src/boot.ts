@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
+import { existsSync } from "node:fs";
 
 /**
  * Boot facade. Pi awaits every extension factory before the session is usable,
@@ -9,12 +10,14 @@ import { homedir } from "node:os";
  * has already returned.
  */
 const ROOT = new URL("..", import.meta.url);
+// Optional layer from a global pi install; absent on a repo-only checkout.
+const OPENCODE_PI = `${homedir()}/.pi/agent/npm/node_modules/opencode-pi/src/index.ts`;
 const STACK = [
 	new URL("./index.ts", import.meta.url).href,
 	new URL("./node_modules/pi-subagents/index.js", ROOT).href,
 	new URL("./node_modules/pi-web-access/dist/index.js", ROOT).href,
 	new URL("./node_modules/pi-btw/extensions/btw.ts", ROOT).href,
-	pathToFileURL(`${homedir()}/.pi/agent/npm/node_modules/opencode-pi/src/index.ts`).href,
+	...(existsSync(OPENCODE_PI) ? [pathToFileURL(OPENCODE_PI).href] : []),
 ];
 
 type FactoryModule = { default?: unknown; sessions?: Array<(ctx: ExtensionContext) => void> };
