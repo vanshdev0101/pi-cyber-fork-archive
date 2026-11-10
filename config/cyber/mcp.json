@@ -7,7 +7,7 @@
     },
     "filesystem": {
       "command": "bunx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/Users/marban"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/vanshc"],
       "description": "Structured file access across the home directory for engagement workspaces and loot."
     },
     "fetch": {

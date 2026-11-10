@@ -14,3 +14,4 @@ config/cyber/models-store.json
 config/models.json
 # Superpowers SDD scratch area (task reports for a completed buildout)
 .superpowers/
+config/cyber/models.json

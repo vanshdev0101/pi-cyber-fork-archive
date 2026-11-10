@@ -1,5 +1,6 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { pathToFileURL } from "node:url";
+import { homedir } from "node:os";
 
 /**
  * Boot facade. Pi awaits every extension factory before the session is usable,
@@ -13,7 +14,7 @@ const STACK = [
 	new URL("./node_modules/pi-subagents/index.js", ROOT).href,
 	new URL("./node_modules/pi-web-access/dist/index.js", ROOT).href,
 	new URL("./node_modules/pi-btw/extensions/btw.ts", ROOT).href,
-	pathToFileURL("/Users/marban/.pi/agent/npm/node_modules/opencode-pi/src/index.ts").href,
+	pathToFileURL(`${homedir()}/.pi/agent/npm/node_modules/opencode-pi/src/index.ts`).href,
 ];
 
 type FactoryModule = { default?: unknown; sessions?: Array<(ctx: ExtensionContext) => void> };
